@@ -1,0 +1,83 @@
+<html>
+<head>
+</head>
+
+<body>
+  <div controller="FirstController">
+    This is ${name} and I love coding ;)
+  </div>
+</body>
+<script>
+
+
+var neoito = {
+  _service: {
+
+  },
+  template: (tpl, args) => {
+    return tpl.replace(/\${(\w+)}/g, (_, v) => args[v])
+  },
+  digest: (scope, name) => {
+    let newHTML = neoito.template(scope.innerHTML, scope);
+    scope.innerHTML = newHTML;
+  }
+};
+
+neoito.module = function () {
+  // do something with module related data
+  // console.log ('module is', arguments[0]);
+  return {
+    'controller': neoito.controller,
+    'service': neoito.service,
+  }
+}
+
+neoito.service = function(name, serviceFn) {
+  neoito._service[name] = new serviceFn();
+}
+neoito.controller = function(name, controllerFn) {
+
+  // get the injected dependancies here
+  let deps = controllerFn.toString().match(/^function\s*[^\(]*\(\s*([^\)]*)\)/m)[1].replace(/ /g, '').split(',');
+
+  let selector = "[controller='" + name + "']";
+  let scope = document.querySelectorAll(selector)[0];
+
+  let injArr = [];
+  for (let dep of deps) {
+    if(dep === 'scope') {
+      injArr.push(scope);
+    } else {
+      injArr.push(neoito._service[dep]);
+    }
+  }
+  controllerFn.apply(null, injArr);
+  neoito.digest(scope, name);
+}
+var app = neoito.module("app");
+
+app.service('hello', function() {
+  return {
+    say() {
+      console.log('I say hello');
+    }
+  }
+});
+
+app.service('bye', function() {
+  return {
+    say() {
+      console.log('I say bye');
+    }
+  }
+});
+
+
+app.controller('FirstController', function(hello, scope, bye) {
+  scope.name = 'Faiz here ';
+  hello.say();
+  bye.say();
+});
+
+</script>
+</html>
